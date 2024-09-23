@@ -1,10 +1,10 @@
 import sys
 import os
-from PyQt5.QtCore import Qt, QTimer, QPoint
-from PyQt5.QtGui import QColor, QPalette, QFont
+from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QColor, QPalette, QFont, QPainter, QLinearGradient
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTextEdit, QFileDialog, QLabel,
-                             QSplitter, QFrame, QGraphicsDropShadowEffect, QSizePolicy)
+                             QSplitter, QFrame, QGraphicsDropShadowEffect, QSizePolicy, QProgressBar)
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from spacy import displacy
 
@@ -22,16 +22,13 @@ class CustomTitleBar(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Başlık etiketi
         title = QLabel("NER ve BIRADS Sınıflandırma")
         title.setStyleSheet(
             "color: white; font-size: 14px; font-weight: bold;")
         layout.addWidget(title)
 
-        # Araya stretch ekliyoruz
         layout.addStretch(1)
 
-        # Minimize ve Maximize Butonları
         self.minimize_button = QPushButton("−")
         self.minimize_button.clicked.connect(self.parent.showMinimized)
 
@@ -58,7 +55,6 @@ class CustomTitleBar(QWidget):
             layout.addWidget(button)
 
         self.setLayout(layout)
-        # Başlığın tüm genişliği kaplaması için gerekli
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setStyleSheet("background-color: #2C2C2C;")
         self.setFixedHeight(30)
@@ -89,73 +85,32 @@ class CustomTitleBar(QWidget):
     def mouseReleaseEvent(self, event):
         self.pressing = False
 
-    def __init__(self, parent):
-        super(CustomTitleBar, self).__init__(parent)
-        self.parent = parent
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
 
-        title = QLabel("NER ve BIRADS Sınıflandırma")
-        title.setStyleSheet(
-            "color: white; font-size: 14px; font-weight: bold;")
-        layout.addWidget(title)
+class AnimatedProgressBar(QProgressBar):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTextVisible(False)
+        self.setStyleSheet("""
+            QProgressBar {
+                background-color: #2C2C2C;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                height: 20px;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
+                                                  stop:0 #4A4A4A, stop:1 #6A6A6A);
+                border-radius: 5px;
+            }
+        """)
+        self.animation = QPropertyAnimation(self, b"value")
+        self.animation.setDuration(1500)  # 1.5 saniye
+        self.animation.setStartValue(0)
+        self.animation.setEndValue(100)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
 
-        layout.addStretch(10)
-
-        self.minimize_button = QPushButton("−")
-        self.minimize_button.clicked.connect(self.parent.showMinimized)
-
-        self.maximize_button = QPushButton("⬜")
-        self.maximized = False
-        self.maximize_button.clicked.connect(self.toggle_maximize_restore)
-
-        self.close_button = QPushButton("×")
-        self.close_button.clicked.connect(self.parent.close)
-
-        for button in [self.minimize_button, self.maximize_button, self.close_button]:
-            button.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    color: white;
-                    border: none;
-                    font-size: 16px;
-                    padding: 5px 10px;
-                }
-                QPushButton:hover {
-                    background-color: rgba(255, 255, 255, 0.1);
-                }
-            """)
-            layout.addWidget(button)
-
-        self.setLayout(layout)
-        self.setStyleSheet("background-color: #2C2C2C;")
-        self.setFixedHeight(30)
-
-    def toggle_maximize_restore(self):
-        if self.maximized:
-            self.parent.showNormal()
-            self.maximize_button.setText("⬜")
-        else:
-            self.parent.showMaximized()
-            self.maximize_button.setText("🗗")
-        self.maximized = not self.maximized
-
-    def mousePressEvent(self, event):
-        self.start = self.mapToGlobal(event.pos())
-        self.pressing = True
-
-    def mouseMoveEvent(self, event):
-        if self.pressing and not self.maximized:
-            self.end = self.mapToGlobal(event.pos())
-            self.movement = self.end - self.start
-            self.parent.setGeometry(self.mapToGlobal(self.movement).x(),
-                                    self.mapToGlobal(self.movement).y(),
-                                    self.parent.width(),
-                                    self.parent.height())
-            self.start = self.end
-
-    def mouseReleaseEvent(self, event):
-        self.pressing = False
+    def start_animation(self):
+        self.animation.start()
 
 
 class MainWindow(QWidget):
@@ -164,7 +119,6 @@ class MainWindow(QWidget):
         self.setWindowTitle("NER ve BIRADS Sınıflandırma")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Pencerenin çerçevesiz ve yeniden boyutlandırılabilir olmasını sağla
         self.setWindowFlags(Qt.FramelessWindowHint |
                             Qt.WindowMinMaxButtonsHint)
 
@@ -179,11 +133,17 @@ class MainWindow(QWidget):
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Yükleme etiketi
+        # Yükleme göstergesi
+        self.loading_widget = QWidget()
+        loading_layout = QVBoxLayout(self.loading_widget)
         self.loading_label = QLabel("Modeller yükleniyor...", self)
         self.loading_label.setAlignment(Qt.AlignCenter)
-        self.loading_label.setStyleSheet("font-size: 24px; color: white;")
-        content_layout.addWidget(self.loading_label)
+        self.loading_label.setStyleSheet(
+            "font-size: 18px; color: #CCCCCC; margin-bottom: 10px;")
+        self.progress_bar = AnimatedProgressBar(self)
+        loading_layout.addWidget(self.loading_label)
+        loading_layout.addWidget(self.progress_bar)
+        content_layout.addWidget(self.loading_widget)
 
         # Yükleme işlemini başlat
         QTimer.singleShot(100, self.start_loading)
@@ -196,78 +156,29 @@ class MainWindow(QWidget):
 
         self.apply_dark_mode()
 
-        # Uygulamayı fullscreen başlat
         self.showFullScreen()
 
-    def apply_dark_mode(self):
-        dark_palette = QPalette()
-        dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
-        dark_palette.setColor(QPalette.WindowText, Qt.white)
-        dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
-        dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-        dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
-        dark_palette.setColor(QPalette.ToolTipText, Qt.white)
-        dark_palette.setColor(QPalette.Text, Qt.white)
-        dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-        dark_palette.setColor(QPalette.ButtonText, Qt.white)
-        dark_palette.setColor(QPalette.BrightText, Qt.red)
-        dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-        dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-        dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
-        self.setPalette(dark_palette)
-
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #353535;
-                color: white;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-            QTextEdit, QWebEngineView {
-                background-color: #2C2C2C;
-                border: 1px solid #555555;
-                border-radius: 4px;
-            }
-            QPushButton {
-                background-color: #4A4A4A;
-                color: white;
-                border: none;
-                padding: 5px 15px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5A5A5A;
-            }
-            QPushButton:pressed {
-                background-color: #3A3A3A;
-            }
-            QSplitter::handle {
-                background-color: #2C2C2C;
-            }
-            QLabel {
-                color: #CCCCCC;
-            }
-        """)
-
     def start_loading(self):
-        # Modelleri yükle
+        self.progress_bar.start_animation()
         self.load_models()
-
-        # GUI bileşenlerini oluştur
-        self.init_ui()
-
-        # Yükleme etiketini kaldır
-        self.loading_label.hide()
 
     def load_models(self):
         # NER modelini yükle
         self.loading_label.setText("NER modeli yükleniyor...")
-        self.repaint()  # Ekranı yenile
+        self.repaint()
         self.ner_model = NerModel(ner_model_path)
 
         # BIRADS modelini yükle
         self.loading_label.setText("BIRADS modeli yükleniyor...")
-        self.repaint()  # Ekranı yenile
+        self.repaint()
         self.birads_model = BiradsClassifier(birads_model_path)
+
+        # Yükleme tamamlandığında
+        QTimer.singleShot(500, self.finish_loading)
+
+    def finish_loading(self):
+        self.loading_widget.hide()
+        self.init_ui()
 
     def init_ui(self):
         main_layout = QHBoxLayout()
@@ -402,6 +313,66 @@ class MainWindow(QWidget):
                 self.obs_absent.append(entity.text + " ")
             elif entity.label_ == "OBS-UNCERTAIN":
                 self.obs_uncertain.append(entity.text + " ")
+
+    def apply_dark_mode(self):
+        dark_palette = QPalette()
+        dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.WindowText, Qt.white)
+        dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
+        dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
+        dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+        dark_palette.setColor(QPalette.Text, Qt.white)
+        dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.ButtonText, Qt.white)
+        dark_palette.setColor(QPalette.BrightText, Qt.red)
+        dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+        dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+        dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
+        self.setPalette(dark_palette)
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #353535;
+                color: white;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QTextEdit, QWebEngineView {
+                background-color: #2C2C2C;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+            QPushButton {
+                background-color: #4A4A4A;
+                color: white;
+                border: none;
+                padding: 5px 15px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #5A5A5A;
+            }
+            QPushButton:pressed {
+                background-color: #3A3A3A;
+            }
+            QSplitter::handle {
+                background-color: #2C2C2C;
+            }
+            QLabel {
+                color: #CCCCCC;
+            }
+            AnimatedProgressBar {
+                background-color: #2C2C2C;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                height: 20px;
+            }
+            AnimatedProgressBar::chunk {
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
+                                                  stop:0 #4A4A4A, stop:1 #6A6A6A);
+                border-radius: 5px;
+            }
+        """)
 
 
 if __name__ == '__main__':
