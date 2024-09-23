@@ -13,8 +13,8 @@ from spacy import displacy
 from src.models.ner_model import NerModel
 from src.models.birads_classifier import BiradsClassifier
 
-birads_model_path = "data/nlp_models/classification_model/model-last"
-ner_model_path = "data/nlp_models/ner_model/model-last"
+birads_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/nlp_models/classification_model")
+ner_model_path = ner_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/nlp_models/ner_model")
 
 
 class CustomTitleBar(QWidget):
@@ -170,12 +170,12 @@ class MainWindow(QWidget):
 
     def load_models(self):
         # Load NER Model
-        self.loading_label.setText("NER modeli yükleniyor...")
+        self.loading_label.setText("NER model is loading...")
         self.repaint()
         self.ner_model = NerModel(ner_model_path)
 
         # Load BIRADS Model
-        self.loading_label.setText("BIRADS modeli yükleniyor...")
+        self.loading_label.setText("BIRADS model is loading...")
         self.repaint()
         self.birads_model = BiradsClassifier(birads_model_path)
 
@@ -334,7 +334,6 @@ class MainWindow(QWidget):
         # Format the results as a JSON object
         results = {
             "patient_id": self.patient_id.toPlainText(),
-            "file_name": self.file_name,
             "ner_results": {
                 "anatomy": self.anatomy.toPlainText(),
                 "observation_present": self.obs_present.toPlainText(),
