@@ -5,7 +5,8 @@ from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor, QPalette, QFont, QPainter, QLinearGradient
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTextEdit, QFileDialog, QLabel,
-                             QSplitter, QFrame, QGraphicsDropShadowEffect, QSizePolicy, QProgressBar)
+                             QSplitter, QFrame, QGraphicsDropShadowEffect, QSizePolicy, QProgressBar,
+                             QMessageBox)
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from spacy import displacy
 
@@ -23,7 +24,8 @@ class CustomTitleBar(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
-        title = QLabel("NER ve BIRADS Sınıflandırma")
+        title = QLabel(
+            "Mammo Lingua | Name Entity Recognition and BIRADS Classification Program")
         title.setStyleSheet(
             "color: white; font-size: 14px; font-weight: bold;")
         layout.addWidget(title)
@@ -117,7 +119,8 @@ class AnimatedProgressBar(QProgressBar):
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("NER ve BIRADS Sınıflandırma")
+        self.setWindowTitle(
+            "Mammo Lingua | Name Entity Recognition and BIRADS Classification Program")
         self.setGeometry(100, 100, 1200, 800)
 
         self.setWindowFlags(Qt.FramelessWindowHint |
@@ -134,10 +137,10 @@ class MainWindow(QWidget):
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Yükleme göstergesi
+        # Progress Bar and Loading Label
         self.loading_widget = QWidget()
         loading_layout = QVBoxLayout(self.loading_widget)
-        self.loading_label = QLabel("Modeller yükleniyor...", self)
+        self.loading_label = QLabel("Models are loading...", self)
         self.loading_label.setAlignment(Qt.AlignCenter)
         self.loading_label.setStyleSheet(
             "font-size: 18px; color: #CCCCCC; margin-bottom: 10px;")
@@ -146,7 +149,7 @@ class MainWindow(QWidget):
         loading_layout.addWidget(self.progress_bar)
         content_layout.addWidget(self.loading_widget)
 
-        # Yükleme işlemini başlat
+        # Start Loading Process
         QTimer.singleShot(100, self.start_loading)
 
         main_layout.addWidget(content_widget)
@@ -166,17 +169,17 @@ class MainWindow(QWidget):
         self.load_models()
 
     def load_models(self):
-        # NER modelini yükle
+        # Load NER Model
         self.loading_label.setText("NER modeli yükleniyor...")
         self.repaint()
         self.ner_model = NerModel(ner_model_path)
 
-        # BIRADS modelini yükle
+        # Load BIRADS Model
         self.loading_label.setText("BIRADS modeli yükleniyor...")
         self.repaint()
         self.birads_model = BiradsClassifier(birads_model_path)
 
-        # Yükleme tamamlandığında
+        # When Loading is Finished
         QTimer.singleShot(500, self.finish_loading)
 
     def finish_loading(self):
@@ -186,7 +189,7 @@ class MainWindow(QWidget):
     def init_ui(self):
         main_layout = QHBoxLayout()
 
-        # Sol taraf
+        # Left Side
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         self.file_button = QPushButton("Dosya Yükle")
@@ -203,18 +206,18 @@ class MainWindow(QWidget):
         left_layout.addWidget(self.show_results_button)
         left_layout.addWidget(self.save_results_button)
 
-        # Sağ taraf
+        # Right Side
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
 
-        # WebView için yeni bir widget oluştur
+        # Create a WebView widget for displaying NER results
         web_view_widget = QWidget()
         web_view_layout = QVBoxLayout(web_view_widget)
         self.web_view = QWebEngineView()
         web_view_layout.addWidget(QLabel("NER Sonuçları:"))
         web_view_layout.addWidget(self.web_view)
 
-        # Diğer metin kutuları için yeni bir widget oluştur
+        # Create text boxes for displaying NER results
         text_boxes_widget = QWidget()
         text_boxes_layout = QVBoxLayout(text_boxes_widget)
 
@@ -235,81 +238,78 @@ class MainWindow(QWidget):
         ]:
             temp_layout = QVBoxLayout()
             temp_layout.addWidget(QLabel(label))
-            widget.setFixedHeight(60)  # Metin kutularının yüksekliğini sınırla
+            widget.setFixedHeight(60)  # Limit height of text boxes
             temp_layout.addWidget(widget)
             text_boxes_layout.addLayout(temp_layout)
 
-        # Sağ tarafı dikey olarak böl
+        # Split the right side vertically
         right_splitter = QSplitter(Qt.Vertical)
         right_splitter.addWidget(web_view_widget)
         right_splitter.addWidget(text_boxes_widget)
-        right_splitter.setSizes([600, 200])  # WebView'a daha fazla alan ver
+        right_splitter.setSizes([600, 200])  # Give more space to WebView
 
         right_layout.addWidget(right_splitter)
 
-        # Ana pencereyi yatay olarak böl
+        # Split the main layout horizontally
         main_splitter = QSplitter(Qt.Horizontal)
         main_splitter.addWidget(left_widget)
         main_splitter.addWidget(right_widget)
-        main_splitter.setSizes([400, 800])  # Sağ tarafa daha fazla alan ver
+        main_splitter.setSizes([400, 800])  # Give more space to the right side
 
         main_layout.addWidget(main_splitter)
 
-        # Ana layout'u mevcut content_layout'a ekle
+        # Add the main layout to the content layout
         self.layout().itemAt(1).widget().layout().addLayout(main_layout)
 
     def load_file(self):
         self.file_name, _ = QFileDialog.getOpenFileName(
-            self, "Dosya Seç", "", "Text Files (*.txt)")
+            self, "Select File", "", "Text Files (*.txt)")
         if self.file_name:
             with open(self.file_name, 'r', encoding='utf-8') as file:
                 self.file_content = file.read().replace(r'\n', ' ')
                 self.text_edit.setText(self.file_content)
 
-            # Dosya yüklendiğinde butonu etkinleştir
+            # Activate the "Show Results" button when a file is loaded
             self.show_results_button.setEnabled(True)
 
     def show_results(self):
         if self.file_content and self.file_name:
-            # Dosya adından patient_id'yi çıkarın ve ayarlayın
+            # Get the patient ID from the file name
             patient_id = os.path.basename(self.file_name).split('.')[0]
             self.patient_id.setText(patient_id)
 
-            # NER ve BIRADS modellerini çağırın ve sonuçları işleyin
+            # Call NER and BIRADS models and process the results
             self.process_ner_results(self.file_content)
             self.process_birads_results(self.file_content)
 
-            # Sonuçları gösterdikten sonra kaydetme butonunu etkinleştir
+            # When showing results, enable the "Save Results" button
             self.save_results_button.setEnabled(True)
-        else:
-            print("Lütfen önce bir dosya yükleyin.")
 
     def process_ner_results(self, text):
-        # NER modelini çağırın ve sonuçları işleyin
+        # Call the NER model and process the results
         doc, options = self.ner_model.get_entities(text)
         self.ner_results = doc
 
-        # NER sonuçlarını HTML olarak biçimlendirin
+        # Format NER results as HTML
         html = displacy.render(doc, style="ent", options=options)
 
-        # Dark mode için HTML'i özelleştir
+        # Specify the background and text color for dark mode
         dark_html = html.replace("background: #ddd", "background: #2C2C2C")
         dark_html = dark_html.replace("color: #000", "color: #FFF")
 
-        # HTML'i WebView'da gösterin
+        # Show HTML in the WebView
         self.web_view.setHtml(dark_html)
-        print("WebView updated with NER results")  # Debug mesajı
 
-        # Diğer metin kutularını güncelleyin
+        # Updates other text boxes based on NER results
         self.update_text_boxes(doc.ents)
 
     def process_birads_results(self, text):
-        # BIRADS modelini çağırın ve sonucu işleyin
+        # Call the BIRADS model and get the classification
         self.birads_result = self.birads_model.get_classification(text)
         self.predicted_birads.setText(str(self.birads_result))
 
     def update_text_boxes(self, ner_results):
-        # NER sonuçlarına göre metin kutularını güncelleyin
+        # Update the text boxes based on NER results
         self.anatomy.clear()
         self.obs_present.clear()
         self.obs_absent.clear()
@@ -327,10 +327,11 @@ class MainWindow(QWidget):
 
     def save_results(self):
         if not self.file_name or not self.ner_results or self.birads_result is None:
-            print("Lütfen önce sonuçları gösterin.")
+            QMessageBox.warning(
+                self, "Warning", "Please load a file and show the results first.")
             return
 
-        # Sonuçları JSON formatında hazırla
+        # Format the results as a JSON object
         results = {
             "patient_id": self.patient_id.toPlainText(),
             "file_name": self.file_name,
@@ -343,14 +344,15 @@ class MainWindow(QWidget):
             "birads_result": self.birads_result
         }
 
-        # Kaydetmek için dosya adını ve konumunu seç
+        # Select the save path
         save_path, _ = QFileDialog.getSaveFileName(
-            self, "Sonuçları Kaydet", "", "JSON Files (*.json)")
+            self, "Save Results", "", "JSON Files (*.json)")
 
         if save_path:
             with open(save_path, 'w', encoding='utf-8') as f:
                 json.dump(results, f, ensure_ascii=False, indent=4)
-            print(f"Sonuçlar başarıyla kaydedildi: {save_path}")
+            QMessageBox.information(
+                self, "Successfull", f"Successfully saved results at {save_path}")
 
     def apply_dark_mode(self):
         dark_palette = QPalette()
@@ -413,6 +415,7 @@ class MainWindow(QWidget):
         """)
 
 
+# Run the application
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
