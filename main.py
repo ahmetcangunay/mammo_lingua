@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor, QPalette, QFont, QPainter, QLinearGradient
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
@@ -153,6 +154,8 @@ class MainWindow(QWidget):
 
         self.file_content = None
         self.file_name = None
+        self.ner_results = None
+        self.birads_result = None
 
         self.apply_dark_mode()
 
@@ -192,9 +195,13 @@ class MainWindow(QWidget):
         self.show_results_button = QPushButton("Sonuçları Göster")
         self.show_results_button.clicked.connect(self.show_results)
         self.show_results_button.setEnabled(False)  # Başlangıçta devre dışı
+        self.save_results_button = QPushButton("Sonuçları Kaydet")
+        self.save_results_button.clicked.connect(self.save_results)
+        self.save_results_button.setEnabled(False)  # Başlangıçta devre dışı
         left_layout.addWidget(self.file_button)
         left_layout.addWidget(self.text_edit)
         left_layout.addWidget(self.show_results_button)
+        left_layout.addWidget(self.save_results_button)
 
         # Sağ taraf
         right_widget = QWidget()
@@ -271,12 +278,16 @@ class MainWindow(QWidget):
             # NER ve BIRADS modellerini çağırın ve sonuçları işleyin
             self.process_ner_results(self.file_content)
             self.process_birads_results(self.file_content)
+
+            # Sonuçları gösterdikten sonra kaydetme butonunu etkinleştir
+            self.save_results_button.setEnabled(True)
         else:
             print("Lütfen önce bir dosya yükleyin.")
 
     def process_ner_results(self, text):
         # NER modelini çağırın ve sonuçları işleyin
         doc, options = self.ner_model.get_entities(text)
+        self.ner_results = doc
 
         # NER sonuçlarını HTML olarak biçimlendirin
         html = displacy.render(doc, style="ent", options=options)
@@ -294,8 +305,8 @@ class MainWindow(QWidget):
 
     def process_birads_results(self, text):
         # BIRADS modelini çağırın ve sonucu işleyin
-        birads_result = self.birads_model.get_classification(text)
-        self.predicted_birads.setText(str(birads_result))
+        self.birads_result = self.birads_model.get_classification(text)
+        self.predicted_birads.setText(str(self.birads_result))
 
     def update_text_boxes(self, ner_results):
         # NER sonuçlarına göre metin kutularını güncelleyin
@@ -313,6 +324,33 @@ class MainWindow(QWidget):
                 self.obs_absent.append(entity.text + " ")
             elif entity.label_ == "OBS-UNCERTAIN":
                 self.obs_uncertain.append(entity.text + " ")
+
+    def save_results(self):
+        if not self.file_name or not self.ner_results or self.birads_result is None:
+            print("Lütfen önce sonuçları gösterin.")
+            return
+
+        # Sonuçları JSON formatında hazırla
+        results = {
+            "patient_id": self.patient_id.toPlainText(),
+            "file_name": self.file_name,
+            "ner_results": {
+                "anatomy": self.anatomy.toPlainText(),
+                "observation_present": self.obs_present.toPlainText(),
+                "observation_absent": self.obs_absent.toPlainText(),
+                "observation_uncertain": self.obs_uncertain.toPlainText()
+            },
+            "birads_result": self.birads_result
+        }
+
+        # Kaydetmek için dosya adını ve konumunu seç
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "Sonuçları Kaydet", "", "JSON Files (*.json)")
+
+        if save_path:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(results, f, ensure_ascii=False, indent=4)
+            print(f"Sonuçlar başarıyla kaydedildi: {save_path}")
 
     def apply_dark_mode(self):
         dark_palette = QPalette()
