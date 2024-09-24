@@ -13,8 +13,10 @@ from spacy import displacy
 from src.models.ner_model import NerModel
 from src.models.birads_classifier import BiradsClassifier
 
-birads_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/nlp_models/classification_model")
-ner_model_path = ner_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/nlp_models/ner_model")
+birads_model_path = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "data/nlp_models/classification_model")
+ner_model_path = ner_model_path = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "data/nlp_models/ner_model")
 
 
 class CustomTitleBar(QWidget):
@@ -192,15 +194,15 @@ class MainWindow(QWidget):
         # Left Side
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
-        self.file_button = QPushButton("Dosya Yükle")
+        self.file_button = QPushButton("Upload File")
         self.file_button.clicked.connect(self.load_file)
         self.text_edit = QTextEdit()
-        self.show_results_button = QPushButton("Sonuçları Göster")
+        self.show_results_button = QPushButton("Show Results")
         self.show_results_button.clicked.connect(self.show_results)
-        self.show_results_button.setEnabled(False)  # Başlangıçta devre dışı
-        self.save_results_button = QPushButton("Sonuçları Kaydet")
+        self.show_results_button.setEnabled(False)  # Inactive at the beginning
+        self.save_results_button = QPushButton("Save Results")
         self.save_results_button.clicked.connect(self.save_results)
-        self.save_results_button.setEnabled(False)  # Başlangıçta devre dışı
+        self.save_results_button.setEnabled(False)  # Inactive at the beginning
         left_layout.addWidget(self.file_button)
         left_layout.addWidget(self.text_edit)
         left_layout.addWidget(self.show_results_button)
@@ -214,7 +216,7 @@ class MainWindow(QWidget):
         web_view_widget = QWidget()
         web_view_layout = QVBoxLayout(web_view_widget)
         self.web_view = QWebEngineView()
-        web_view_layout.addWidget(QLabel("NER Sonuçları:"))
+        web_view_layout.addWidget(QLabel("NER Results:"))
         web_view_layout.addWidget(self.web_view)
 
         # Create text boxes for displaying NER results
@@ -335,10 +337,10 @@ class MainWindow(QWidget):
         results = {
             "patient_id": self.patient_id.toPlainText(),
             "ner_results": {
-                "anatomy": self.anatomy.toPlainText(),
-                "observation_present": self.obs_present.toPlainText(),
-                "observation_absent": self.obs_absent.toPlainText(),
-                "observation_uncertain": self.obs_uncertain.toPlainText()
+                "anatomy": self.anatomy.toPlainText().split(" \n"),
+                "observation_present": self.obs_present.toPlainText().split(" \n"),
+                "observation_absent": self.obs_absent.toPlainText().split(" \n"),
+                "observation_uncertain": self.obs_uncertain.toPlainText().split(" \n")
             },
             "birads_result": self.birads_result
         }
