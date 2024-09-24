@@ -31,8 +31,8 @@ install_requirements:
 install_models:
 	$(PYTHON) -c "\
 	from huggingface_hub import snapshot_download; \
-	snapshot_download(repo_id='$(NER_MODEL_REPO)', local_dir= '$(NER_MODEL_PATH)', ignore_patterns="*.whl"); \
-	snapshot_download(repo_id='$(BIRADS_MODEL_REPO)', local_dir= '$(BIRADS_MODEL_PATH)', ignore_patterns="*.whl"); \
+	snapshot_download(repo_id='$(NER_MODEL_REPO)', local_dir= '$(NER_MODEL_PATH)', ignore_patterns='*.whl'); \
+	snapshot_download(repo_id='$(BIRADS_MODEL_REPO)', local_dir= '$(BIRADS_MODEL_PATH)', ignore_patterns='*.whl'); \
 	"
 
 # Build the executable using PyInstaller
