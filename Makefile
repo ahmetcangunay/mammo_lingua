@@ -16,19 +16,19 @@ APP_NAME = mammo_lingua
 MAIN_FILE = main.py
 
 # Default target
-all: venv install_models build
+all: venv install_requirements install_models run
 
 # Create virtual environment
 venv:
 	python3 -m venv $(VENV)
 
 # Install required Python packages
-install_requirements: venv
+install_requirements:
 	$(PIP) install -r requirements.txt
 	$(PIP) install pyinstaller
 
 # Download Hugging Face models and save them to the correct paths
-install_models: install_requirements
+install_models:
 	$(PYTHON) -c "\
 	from huggingface_hub import snapshot_download; \
 	snapshot_download(repo_id='$(NER_MODEL_REPO)', local_dir= '$(NER_MODEL_PATH)', ignore_patterns="*.whl"); \
@@ -51,7 +51,7 @@ clean_build:
 	rm -rf build dist *.spec
 
 # Run the app locally (for testing in venv)
-run: install_models
+run:
 	$(PYTHON) $(MAIN_FILE)
 
 .PHONY: all venv install_requirements install_models build clean clean_build run
