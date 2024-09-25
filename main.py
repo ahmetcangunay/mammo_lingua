@@ -1,3 +1,15 @@
+#!.venv/bin/python3 main.py
+
+# -*- coding: utf-8 -*-
+
+"""
+@Author: Ahmet Can GÜNAY
+@Version: 1.0
+@Description: A GUI application for Name Entity Recognition and BIRADS Classification
+@Date: 2024-09-19
+@License: MIT
+"""
+
 import sys
 import os
 import json

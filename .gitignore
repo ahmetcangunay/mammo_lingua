@@ -34876,3 +34876,7 @@ data/nlp_models/ner_model/vocab/vectors.cfg
 .venv/lib/python3.10/site-packages/typer-0.7.0.dist-info/METADATA
 .venv/lib/python3.10/site-packages/typer-0.7.0.dist-info/RECORD
 .venv/lib/python3.10/site-packages/typer-0.7.0.dist-info/WHEEL
+data/nlp_models/classification_model/.gitattributes
+data/nlp_models/classification_model/README.md
+data/nlp_models/ner_model/.gitattributes
+data/nlp_models/ner_model/README.md
