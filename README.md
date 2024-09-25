@@ -104,4 +104,5 @@ Here's an example of how to use the tool:
 [Ahmet Can GÜNAY](https://github.com/ahmetcangunay) :shipit:
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE]() file for details.
+> [!IMPORTANT]
+> This project is licensed under the CC BY-NC-SA 4.0 License. See the [LICENSE](https://creativecommons.org/licenses/by-nc-sa/4.0/) file for details.
