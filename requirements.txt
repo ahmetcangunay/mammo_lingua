@@ -63,7 +63,7 @@ srsly==2.4.8
 sympy==1.13.3
 thinc==8.2.5
 tokenizers==0.15.2
-torch==2.4.1
+torch==2.6.0
 tqdm==4.66.5
 transformers==4.48.3
 triton==3.0.0
